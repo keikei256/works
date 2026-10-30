@@ -389,7 +389,7 @@ footer .copy{grid-column:1/-1;display:flex;justify-content:space-between;font-si
   <p class="fv-label"><i></i>様式第一号<b>for the first hire</b></p>
   <p class="month" id="month"><b>十月の手続き</b><span>最低賃金が変わる時期です。時給の見直しを。</span></p>
   <figure class="photo"><img src="img/chairs.jpg" alt="窓の大きな部屋に、椅子が並ぶ長い机"><figcaption>THE EMPTY CHAIR — まだ誰も座っていない席</figcaption></figure>
-  <h1 aria-label="はじめての採用を、手続きから支えます。"><span class="l" aria-hidden="true"><span>はじめての採用を、</span></span><span class="l" aria-hidden="true"><span id="swap">手続きから支えます。</span></span></h1>
+  <h1 aria-label="人を雇うことにした。でも、何から？"><span class="l" aria-hidden="true"><span id="swap">人を雇うことにした。</span></span><span class="l" aria-hidden="true"><span>でも、何から？</span></span></h1>
   <figure class="photo2"><img src="img/door.jpg" alt="暗い廊下の先にある、明かりのついた部屋"></figure>
   <p class="lead">雇用契約書、社会保険、労働保険、お店の営業許可。<em>最初のひとりを雇うまでの手続き</em>を、ひとつの窓口でお引き受けします。従業員10名までの会社とお店のための事務所です。</p>
   <div class="cta"><span class="seal">初回相談<br>三十分<br>無料</span><a class="btn" href="#"><span>相談の日時を選ぶ</span><i>→</i></a></div>
@@ -490,7 +490,7 @@ footer .copy{grid-column:1/-1;display:flex;justify-content:space-between;font-si
 </section>
 
 <section class="closing" id="contact">
-  <div class="big-flow" aria-hidden="true"><div id="bigFlow">はじめての採用を、手続きから支えます。<span>はじめての採用を、手続きから支えます。</span></div></div>
+  <div class="big-flow" aria-hidden="true"><div id="bigFlow">人を雇うことにした。でも、何から？<span>人を雇うことにした。でも、何から？</span></div></div>
   <div class="close-in">
     <div><span class="tagv">ONLINE</span><h3><span class="p">ひとりで抱えていた</span><span class="p">「何から？」を、</span><br><span class="p">30分でほどきます。</span></h3><p>無料相談では、あなたのお店で必要な手続きを一枚の表にしてお渡しします。そのまま持ち帰って、ご自身で進めていただいても構いません。</p><a class="btn" href="#"><span>相談の日時を選ぶ</span><i>→</i></a></div>
     <div><span class="tagv">TEL</span><h3>お電話でのご予約</h3><p>オンライン（Zoom・Google Meet）または静岡市の事務所にて。</p><p class="tel">000-0000-0000</p><small>平日 9:00〜18:00／土曜は月2回</small><span class="seal">初回相談<br>三十分<br>無料</span></div>
@@ -538,7 +538,7 @@ addEventListener('scroll',function(){var y=scrollY;if(innerWidth>820){ph.style.t
 if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target)}})},{threshold:.2});document.querySelectorAll('.reveal').forEach(function(el){io.observe(el)});}
 else document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('on')});
 /* 見出しの後半を、1文字ずつ入れ替える */
-(function(){var el=document.getElementById('swap'),words=['手続きから支えます。','雇う前から支えます。','給料日まで支えます。'],i=0;
+(function(){var el=document.getElementById('swap'),words=['人を雇うことにした。','パートさんを雇いたい。','社員をひとり迎えたい。'],i=0;
 if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
 function chars(w,cls){return w.split('').map(function(c){return '<span class="c'+(cls?' '+cls:'')+'">'+c+'</span>'}).join('')}
 setTimeout(function(){el.closest('h1').classList.add('done');el.innerHTML=chars(words[0]);setInterval(next,4200)},1600);
