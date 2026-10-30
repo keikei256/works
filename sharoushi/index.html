@@ -50,7 +50,7 @@ nav a:hover{color:var(--shu)}
 .fv-label i{display:block;width:40px;height:1px;background:var(--ink)}
 .fv-label b{font-family:var(--latin);font-style:italic;font-weight:500;font-size:15px;letter-spacing:.06em;color:var(--ink)}
 
-.photo{position:absolute;right:var(--g);top:64px;width:54%;height:62%;overflow:hidden}
+.photo{position:absolute;right:var(--g);top:64px;width:54%;height:min(62%,calc(100% - 370px));overflow:hidden}
 .photo img{width:100%;height:100%;object-fit:cover;object-position:30% 60%;transform:scale(1.12);animation:slowzoom 18s ease-out forwards}
 @keyframes slowzoom{to{transform:scale(1)}}
 .photo figcaption{position:absolute;left:0;bottom:-26px;font-size:10.5px;letter-spacing:.16em;color:var(--sub)}
@@ -302,6 +302,8 @@ footer nav a:last-child{border-bottom:1px solid #45474a}
 footer .copy{grid-column:1/-1;display:flex;justify-content:space-between;font-size:11.5px;color:#8e8b84;margin-top:20px}
 
 .sp-cta{display:none}
+@media (min-width:821px) and (max-width:1180px){.cta .seal{position:absolute;right:8px;top:-98px}}
+@media (min-width:821px) and (max-width:980px){.photo2{display:none}.lead{left:var(--g);width:36%}}
 @media (max-width:820px){
   nav{display:none}
   .logo small{display:block;margin:0 0 2px}
@@ -391,7 +393,7 @@ footer .copy{grid-column:1/-1;display:flex;justify-content:space-between;font-si
   <figure class="photo"><img src="img/chairs.jpg" alt="窓の大きな部屋に、椅子が並ぶ長い机"><figcaption>THE EMPTY CHAIR — まだ誰も座っていない席</figcaption></figure>
   <h1 aria-label="人を雇うことにした。でも、何から？"><span class="l" aria-hidden="true"><span id="swap">人を雇うことにした。</span></span><span class="l" aria-hidden="true"><span>でも、何から？</span></span></h1>
   <figure class="photo2"><img src="img/door.jpg" alt="暗い廊下の先にある、明かりのついた部屋"></figure>
-  <p class="lead">雇用契約書、社会保険、労働保険、お店の営業許可。<em>最初のひとりを雇うまでの手続き</em>を、ひとつの窓口でお引き受けします。従業員10名までの会社とお店のための事務所です。</p>
+  <p class="lead">まずは、やることの全体を一枚の表に。雇用契約書から社会保険、営業許可まで、<em>最初のひとりを迎えるまでの手続き</em>を、ひとつの窓口でお引き受けします。従業員10名までの会社とお店のための事務所です。</p>
   <div class="cta"><span class="seal">初回相談<br>三十分<br>無料</span><a class="btn" href="#"><span>相談の日時を選ぶ</span><i>→</i></a></div>
   <p class="side">SHIZUOKA — LABOR &amp; SOCIAL SECURITY</p>
   <div class="marquee" aria-hidden="true"><div class="track" id="track"><span>雇用契約書</span><span>労働条件通知書</span><span>健康保険・厚生年金保険 新規適用届</span><span>雇用保険 適用事業所設置届</span><span>労働保険 保険関係成立届</span><span>就業規則</span><span>三六協定届</span><span>賃金台帳</span><span>飲食店営業許可申請</span></div></div>
