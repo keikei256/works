@@ -18,7 +18,7 @@ PF_REAL = os.path.realpath(PF)
 REPO = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 SITE_WORK = os.path.join(PF_REAL, "portfolio", "公開ページ")
 KINDS = ("portfolio", "sales")
-# 仕組みそのもの。書き換えはユーザーの確認を通す
+# 仕組みそのもの。書き換えは止めないが、仕組みの変更記録.jsonl に残して週1回の点検でユーザーに報告する
 PROTECTED = [os.path.join(REPO, ".claude"),
              os.path.join(PF_REAL, "knowledge", "lp-kit", "gate.py"),
              os.path.join(PF_REAL, "knowledge", "lp-kit", "publish.py"),
@@ -140,6 +140,18 @@ def urlmap():
         return {}
 
 
+CHANGE_LOG = os.path.join(PF_REAL, "knowledge", "lp-kit", "仕組みの変更記録.jsonl")
+
+
+def log_change(p):
+    try:
+        with open(CHANGE_LOG, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+                                "path": real(p), "cwd": os.getcwd()}, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
 def deny(msg):
     print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse",
                                              "permissionDecision": "deny",
@@ -157,7 +169,8 @@ def ask(msg):
 def check_paths(paths):
     for p in paths:
         if protected(p):
-            ask("逆算の関門の仕組み（" + p + "）を書き換えようとしています。ユーザーの確認が必要です。")
+            # 2026-10-30 ユーザー「確認画面を出さなくてもよい」。止めずに、書き換えたことを記録に残す（週1回の点検でユーザーに報告する）
+            log_change(p)
     for p in paths:
         w = work_of(p)
         if w and not w[1]:
@@ -178,7 +191,8 @@ PATH_TOKEN = re.compile(r"(?:/mnt/(?:attach/)?project-files|(?<![\w/])project-fi
 def script_texts(cmd):
     """コマンドが実行するスクリプトファイルの中身（そこに書かれたパスも調べる）"""
     out = []
-    for tok in re.findall(r"[^\s'\"`;|&<>]+\.(?:py|js|mjs|cjs|sh)\b", cmd):
+    # 実行されるスクリプトだけ（rm や cp の対象になっているだけのファイルは読まない）
+    for tok in re.findall(r"\b(?:python3?|node|perl|ruby|bash|sh|deno|bun)\s+(?:-\S+\s+)*([^\s'\"`;|&<>]+\.(?:py|js|mjs|cjs|sh))\b", cmd):
         try:
             p = real(tok)
             if os.path.isfile(p) and os.path.getsize(p) < 2_000_000:
@@ -210,7 +224,7 @@ def bash_paths(cmd):
     if re.search(r"\.claude/(settings|hooks)", alltext):
         found.append(os.path.join(REPO, ".claude", "x"))
     cwdw = work_of(os.path.join(os.getcwd(), "x"))
-    if cwdw and not cwdw[1]:
+    if cwdw and not cwdw[1] and cwdw[0] != SITE_WORK:
         found.append(os.path.join(cwdw[0], "x"))
     # 公開ページ（このリポジトリ）を直す形。git の記録だけの操作は除く
     in_repo = bool(re.search(re.escape(REPO) + r"|(^|[\s;&|'\"])works/", alltext)) or os.path.realpath(os.getcwd()).startswith(REPO)
@@ -218,7 +232,8 @@ def bash_paths(cmd):
     if in_repo and not only_git:
         for m in re.finditer(r"[^\s'\"`;|&<>]+", alltext):
             t = m.group(0)
-            if t.startswith(REPO) or (os.path.realpath(os.getcwd()).startswith(REPO) and not t.startswith(("/", "-"))):
+            rel_ok = not t.startswith(("/", "-")) and ("/" in t or "." in t or os.path.exists(os.path.join(os.getcwd(), t)))
+            if t.startswith(REPO) or (os.path.realpath(os.getcwd()).startswith(REPO) and rel_ok):
                 w = work_of(t if t.startswith("/") else os.path.join(os.getcwd(), t))
                 if w and w[0] == SITE_WORK and not t.endswith(".claude") and "/.claude" not in t:
                     found.append(os.path.join(REPO, "x"))
