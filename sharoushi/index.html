@@ -113,10 +113,13 @@ h1 .c.pre{opacity:0;filter:blur(18px);transform:translateY(.16em);transition:non
 .eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--shu)}
 
 /* ── CHAPTER 01：14項目を横に送る ── */
-.todo{position:relative;height:var(--h,400vh)}
-.todo-pin{position:sticky;top:0;height:100vh;overflow:hidden;display:flex;flex-direction:column;justify-content:center;border-top:1px solid var(--ink)}
-.todo-pin .chap-head{position:absolute;top:56px;left:0;right:0}
-.todo-track{display:flex;gap:0;padding-left:var(--g);margin-top:110px;will-change:transform}
+.todo{position:relative}
+.todo-pin{position:relative;padding:56px 0 64px;border-top:1px solid var(--ink)}
+.todo-pin .chap-head{position:relative}
+.todo-track{display:flex;gap:0;padding:0 var(--g);margin-top:72px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scroll-padding-left:var(--g);scrollbar-width:none;cursor:grab;-webkit-user-select:none;user-select:none}
+.todo-track::-webkit-scrollbar{display:none}
+.todo-track.drag{cursor:grabbing;scroll-snap-type:none}
+.todo-track>*{scroll-snap-align:start}
 .todo-intro{flex:none;width:min(440px,34vw);padding-right:56px}
 .todo-intro p{font-size:14.5px;line-height:2.1;letter-spacing:.05em}
 .todo-intro .legend{margin-top:26px;display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--sub)}
@@ -135,7 +138,11 @@ h1 .c.pre{opacity:0;filter:blur(18px);transform:translateY(.16em);transition:non
 .todo-end .big{font-family:var(--latin);font-weight:500;font-size:clamp(110px,12vw,180px);line-height:.9;letter-spacing:-.03em}
 .todo-end .big small{font-size:.38em;letter-spacing:0;margin-left:.1em}
 .todo-end p{margin-top:24px;font-size:14.5px;line-height:2.1}
-.progress{position:absolute;left:var(--g);right:var(--g);bottom:44px;display:flex;align-items:center;gap:24px;font-family:var(--latin);font-weight:600;font-size:14px;letter-spacing:.2em}
+.progress{margin:48px var(--g) 0;display:flex;align-items:center;gap:24px;font-family:var(--latin);font-weight:600;font-size:14px;letter-spacing:.2em}
+.progress .arw{display:flex;gap:8px}
+.progress button{width:44px;height:44px;border:1px solid var(--ink);background:transparent;color:var(--ink);font:inherit;font-size:16px;letter-spacing:0;cursor:pointer;transition:background .3s,color .3s,opacity .3s}
+.progress button:hover:not(:disabled){background:var(--ink);color:var(--paper)}
+.progress button:disabled{opacity:.25;cursor:default}
 .progress .bar{flex:1;height:1px;background:var(--rule);position:relative}
 .progress .bar i{position:absolute;left:0;top:-1px;height:3px;width:0;background:var(--ink)}
 
@@ -314,20 +321,16 @@ footer .copy{grid-column:1/-1;display:flex;justify-content:space-between;font-si
   .btn{min-width:0;flex:1}
   .seal{width:70px;height:70px;font-size:11px}
   .marquee{margin:0 calc(var(--g) * -1)}
-  .todo{height:auto}
-  .todo-pin{position:relative;height:auto;padding:64px 0 40px}
-  .todo-pin .chap-head{position:relative;top:0}
-  .todo-track{flex-direction:column;margin-top:28px;padding:0 var(--g);transform:none!important}
-  .todo-intro,.todo-end{width:auto;padding:0;border:none;height:auto}
-  .todo-intro{margin-bottom:28px}
-  .item{width:auto;height:auto;border-left:none;border-top:1px solid var(--ink);padding:18px 0;display:grid;grid-template-columns:64px 1fr;column-gap:12px}
-  .item .n{font-size:40px;grid-row:1/5}
-  .item .when{margin-top:0}
-  .item h3{margin-top:0;font-size:18px}
-  .item p{min-height:0}
+  .todo-pin{padding:64px 0 40px}
+  .todo-track{margin-top:32px;scroll-snap-type:x mandatory}
+  .todo-intro{width:76vw;padding-right:28px}
+  .item{width:68vw;height:340px;padding:0 20px}
+  .item .n{font-size:56px}
+  .item h3{font-size:19px}
   .tag{margin-top:10px;justify-self:start}
-  .todo-end{margin-top:24px;border-top:1px solid var(--ink);padding-top:24px}
-  .progress{display:none}
+  .todo-end{width:84vw;height:340px;padding:0 var(--g) 0 24px}
+  .progress{margin-top:28px;gap:16px}
+  .progress .arw{display:none}
   .fee{margin-top:170px}
   .flow{padding:90px 0}
   .flow-top{grid-template-columns:1fr;padding:0}
@@ -403,7 +406,7 @@ footer .copy{grid-column:1/-1;display:flex;justify-content:space-between;font-si
       <article class="item"><span class="n">01</span><span class="when">雇う前</span><h3>雇う条件を決める</h3><p>時給・勤務時間・試用期間</p><span class="tag ">相談</span></article><article class="item"><span class="n">02</span><span class="when">雇う前</span><h3>求人票をつくる</h3><p>ハローワーク・求人サイト</p><span class="tag ">相談</span></article><article class="item self"><span class="n">03</span><span class="when">雇う前</span><h3>面接をする</h3><p>どんな人と働きたいか</p><span class="tag self">ご自身で</span></article><article class="item"><span class="n">04</span><span class="when">雇う日まで</span><h3>雇用契約書をつくる</h3><p>お店の働き方に合わせて</p><span class="tag do">代行</span></article><article class="item"><span class="n">05</span><span class="when">雇う日に</span><h3>労働条件通知書を渡す</h3><p>法律で書面の明示が必要です</p><span class="tag do">代行</span></article><article class="item"><span class="n">06</span><span class="when">開業の前に</span><h3>営業の許可を確認する</h3><p>業種によって保健所・県へ</p><span class="tag do">代行</span></article><article class="item"><span class="n">07</span><span class="when">成立から10日以内</span><h3>労災保険の加入</h3><p>1人でも雇ったら必要です</p><span class="tag do">代行</span></article><article class="item"><span class="n">08</span><span class="when">10日以内／翌月10日まで</span><h3>雇用保険の届出</h3><p>週20時間以上働く人がいるとき</p><span class="tag do">代行</span></article><article class="item"><span class="n">09</span><span class="when">雇った日から5日以内</span><h3>健康保険・厚生年金</h3><p>法人は1名から</p><span class="tag do">代行</span></article><article class="item"><span class="n">10</span><span class="when">最初の給料日まで</span><h3>給与計算の準備</h3><p>締め日・支払日・残業代</p><span class="tag do">代行</span></article><article class="item"><span class="n">11</span><span class="when">開設から1か月以内</span><h3>給与支払事務所の届出</h3><p>税務署へ</p><span class="tag ">税理士と連携</span></article><article class="item"><span class="n">12</span><span class="when">残業をさせる前に</span><h3>三六協定の届出</h3><p>残業や休日出勤があるとき</p><span class="tag do">代行</span></article><article class="item"><span class="n">13</span><span class="when">雇った日から</span><h3>法定の帳簿をそろえる</h3><p>労働者名簿・賃金台帳・出勤簿</p><span class="tag do">代行</span></article><article class="item self"><span class="n">14</span><span class="when">初日</span><h3>初日を迎える</h3><p>鍵・制服・仕事の説明</p><span class="tag self">ご自身で</span></article>
       <div class="todo-end"><p class="big">11<small>／14</small></p><p>十四のうち十一は、書類の作成から役所への提出まで任せていただけます。ご自身で行うのは、面接と初日の受け入れ、それから「どんな人と働きたいか」を考えることだけです。</p></div>
     </div>
-    <div class="progress"><span>SCROLL →</span><span class="bar"><i id="bar"></i></span><span id="count">01 / 14</span></div>
+    <div class="progress"><span class="lbl">DRAG →</span><span class="bar"><i id="bar"></i></span><span id="count">01 / 14</span><span class="arw"><button type="button" id="todoPrev" aria-label="前の項目へ">←</button><button type="button" id="todoNext" aria-label="次の項目へ">→</button></span></div>
   </div>
 </section>
 
@@ -504,13 +507,25 @@ footer .copy{grid-column:1/-1;display:flex;justify-content:space-between;font-si
 /* 帯を2周ぶん並べて、切れ目なく流す */
 var t=document.getElementById('track');t.innerHTML+=t.innerHTML;
 
-/* 14項目：縦スクロールで横に送る（PCのみ） */
-(function(){var sec=document.getElementById('todo'),tr=document.getElementById('todoTrack'),bar=document.getElementById('bar'),cnt=document.getElementById('count');
-function size(){if(innerWidth<=820){sec.style.removeProperty('--h');tr.style.transform='';return}
-  var dist=tr.scrollWidth-innerWidth;sec.style.setProperty('--h',(innerHeight+dist)+'px');sec.dataset.dist=dist;move()}
-function move(){if(innerWidth<=820)return;var d=+sec.dataset.dist||0,top=sec.getBoundingClientRect().top,p=Math.min(1,Math.max(0,-top/d));
-  tr.style.transform='translateX('+(-p*d)+'px)';bar.style.width=(p*100)+'%';cnt.textContent=String(Math.min(14,Math.max(1,Math.round(p*13)+1))).padStart(2,'0')+' / 14'}
-addEventListener('resize',size);addEventListener('scroll',move,{passive:true});addEventListener('load',size);size();})();
+/* 14項目：横にスライド（縦スクロールは奪わない。ドラッグ・スワイプ・ボタン・横ホイールで送る） */
+(function(){var tr=document.getElementById('todoTrack'),bar=document.getElementById('bar'),cnt=document.getElementById('count'),
+  prev=document.getElementById('todoPrev'),next=document.getElementById('todoNext'),items=[].slice.call(tr.querySelectorAll('.item'));
+function upd(){var d=tr.scrollWidth-tr.clientWidth,p=d>0?tr.scrollLeft/d:0,x=tr.getBoundingClientRect().left+tr.clientWidth*.5,n=1;
+  items.forEach(function(it,i){if(it.getBoundingClientRect().left<x)n=i+1});
+  bar.style.width=(p*100)+'%';cnt.textContent=String(n).padStart(2,'0')+' / 14';prev.disabled=tr.scrollLeft<4;next.disabled=tr.scrollLeft>d-4}
+function step(dir){var w=items[0].getBoundingClientRect().width;tr.scrollBy({left:dir*w*2,behavior:'smooth'})}
+prev.addEventListener('click',function(){step(-1)});next.addEventListener('click',function(){step(1)});
+if(matchMedia('(pointer:coarse)').matches)document.querySelector('.progress .lbl').textContent='SWIPE →';
+tr.addEventListener('scroll',upd,{passive:true});addEventListener('resize',upd);upd();
+/* 横向きのホイール（トラックパッド・Shift＋ホイール）だけは、なめらかスクロールに渡さずこの列で受ける */
+tr.addEventListener('wheel',function(e){if(Math.abs(e.deltaX)>Math.abs(e.deltaY)){e.stopPropagation()}else if(e.shiftKey){e.stopPropagation();e.preventDefault();tr.scrollLeft+=e.deltaY}},{passive:false});
+/* マウスでつかんで横に送る */
+var down=false,sx=0,sl=0,moved=0;
+tr.addEventListener('pointerdown',function(e){if(e.pointerType!=='mouse')return;down=true;moved=0;sx=e.clientX;sl=tr.scrollLeft;tr.classList.add('drag')});
+addEventListener('pointermove',function(e){if(!down)return;var dx=e.clientX-sx;moved=Math.max(moved,Math.abs(dx));tr.scrollLeft=sl-dx});
+addEventListener('pointerup',function(){if(!down)return;down=false;tr.classList.remove('drag')});
+tr.addEventListener('click',function(e){if(moved>5){e.preventDefault();e.stopPropagation()}},true);
+})();
 var ff=document.getElementById('feeFlow');ff.textContent+=ff.textContent+ff.textContent+ff.textContent;
 var bf=document.getElementById('bigFlow');bf.innerHTML+=bf.innerHTML;
 var fi=document.getElementById('flowImg');addEventListener('scroll',function(){var r=fi.parentNode.getBoundingClientRect();if(r.bottom>0&&r.top<innerHeight){fi.style.transform='translateY('+(-(1-(r.top+r.height)/(innerHeight+r.height))*13)+'%)'}},{passive:true});
