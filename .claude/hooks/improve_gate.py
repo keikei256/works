@@ -23,7 +23,10 @@ PROTECTED = [os.path.join(REPO, ".claude"),
              os.path.join(PF_REAL, "knowledge", "lp-kit", "gate.py"),
              os.path.join(PF_REAL, "knowledge", "lp-kit", "publish.py"),
              os.path.join(PF_REAL, "knowledge", "lp-kit", "audit.py"),
-             os.path.join(PF_REAL, "knowledge", "lp-kit", "check.js")]
+             os.path.join(PF_REAL, "knowledge", "lp-kit", "check.js"),
+             os.path.join(PF_REAL, "knowledge", "lp-kit", "第三者判定_依頼文.md")]
+JUDGE_TPL = os.path.join(PF_REAL, "knowledge", "lp-kit", "第三者判定_依頼文.md")
+JUDGE_MARK = "<!-- 見張り役が記録した第三者判定 -->"
 
 
 def real(p):
@@ -75,6 +78,21 @@ def section(text, head):
     return m.group(1) if m else None
 
 
+def gap_detail_errs(goal, gap):
+    """「差」の各行が、見本のどこと比べたか（目標のURLか「見本N」）と、中身（20字以上）を持っているか"""
+    if goal is None or gap is None:
+        return []
+    urls = list(dict.fromkeys(re.findall(r"https?://[^\s)|>\]]+", goal)))
+    bad = []
+    for line in re.findall(r"^\s*[-・*]\s*(\S.*)$", gap, re.M):
+        ref = any(u in line for u in urls) or any(1 <= int(n) <= len(urls) for n in re.findall(r"見本\s*(\d+)", line))
+        if not ref or len(line.strip()) < 20:
+            bad.append(line.strip()[:20])
+    if bad:
+        return ["「## 差」の各行に、比べた見本（目標のURLか「見本1」のような番号）と、どこがどう違うか（20字以上）を書く。足りない行: " + "／".join(bad)]
+    return []
+
+
 def memo_problem(w):
     """逆算メモが足りなければ理由を返す。見せたことのない作品・十分なメモがあれば None"""
     rows = records(w)
@@ -96,6 +114,7 @@ def memo_problem(w):
     for n, body in (("差", gap), ("埋め方", fill)):
         if body is None or len(re.findall(r"^\s*[-・*]\s*\S", body, re.M)) < 3:
             errs.append(f"「## {n}」に「- 」の行が3つ以上ない")
+    errs += gap_detail_errs(goal, gap)
     old = [f for f in memos if f not in new]
     if old and gap is not None:
         norm = lambda s: re.sub(r"\s+", "", s or "")
@@ -241,12 +260,47 @@ def bash_paths(cmd):
     return found, vague
 
 
+def judge_prompt_problem(prompt):
+    """依頼文が決まった形どおりか（作った側の結論や言い訳を混ぜていないか）"""
+    try:
+        tpl = open(JUDGE_TPL, encoding="utf-8").read()
+    except Exception:
+        return "第三者判定の依頼文の型が見つかりません: " + JUDGE_TPL
+    fixed = [l.strip() for l in tpl.splitlines() if l.strip() and "{" not in l]
+    lines = [l.strip() for l in prompt.splitlines() if l.strip()]
+    missing = [l for l in fixed if l not in lines]
+    if missing:
+        return "【関門】第三者判定の依頼文が型と違います（足りない行: " + missing[0][:30] + "）。lp-kit/第三者判定_依頼文.md の {} だけを埋めて、そのまま渡してください。"
+    extra = [l for l in lines if l not in fixed and not l.startswith(("- 作品フォルダ:", "- 目指す一流の見本"))
+             and not re.fullmatch(r"[-・*]?\s*https?://\S+", l)]
+    if extra:
+        return "【関門】第三者判定の依頼文に、型にない文が入っています（作った側の考えを渡さないため）: " + extra[0][:40]
+    if len(set(re.findall(r"https?://\S+", prompt))) < 3:
+        return "【関門】第三者判定の依頼文に、一流の見本URLが3件以上ありません。"
+    if not re.search(r"- 作品フォルダ:\s*/mnt/\S+", prompt):
+        return "【関門】第三者判定の依頼文の「- 作品フォルダ:」に作品フォルダのパスを書いてください。"
+    return None
+
+
 def pre(data):
     tool, ti = data.get("tool_name", ""), data.get("tool_input", {}) or {}
     if tool in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
-        check_paths([ti.get("file_path") or ti.get("notebook_path")])
+        fp = ti.get("file_path") or ti.get("notebook_path") or ""
+        if "第三者判定" in os.path.basename(fp) and real(fp) != JUDGE_TPL:
+            deny("【関門】第三者判定は自分では書けません。Agent ツールで別のエージェントに、/mnt/project-files/knowledge/lp-kit/第三者判定_依頼文.md の形で頼むと、見張り役が結果を review/ に記録します。")
+        check_paths([fp])
+    elif tool == "Agent":
+        prompt = ti.get("prompt", "")
+        if "【第三者判定】" in prompt:
+            if ti.get("subagent_type") == "fork":
+                deny("【関門】第三者判定に fork は使えません（自分の考えを引き継ぐため）。新しいエージェント（general-purpose など）に頼んでください。")
+            p = judge_prompt_problem(prompt)
+            if p:
+                deny(p)
     elif tool == "Bash":
         cmd = ti.get("command", "")
+        if "第三者判定" in cmd and (SHELL_WRITE.search(cmd) or (INTERP.search(cmd) and CODE_WRITE.search(cmd))):
+            deny("【関門】第三者判定のファイルはコマンドで作ったり書き換えたりできません。Agent ツールで別のエージェントに頼んでください。")
         # publish.py と check.js は中で gate.py が逆算メモを確かめるので通す
         if re.fullmatch(r"\s*(cd [^;&|]+(&&|;)\s*)?(python3?\s+(-I\s+)?\S*(publish|gate|audit)\.py[^;&|]*|node\s+\S*check\.js[^;&|]*)\s*", cmd):
             return
@@ -334,6 +388,30 @@ def post(data):
             json.dump(m, open(URLMAP, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
         except Exception:
             pass
+    elif tool == "Agent" and "【第三者判定】" in (ti.get("prompt") or ""):
+        m = re.search(r"- 作品フォルダ:\s*(/\S+)", ti["prompt"])
+        w = work_of(os.path.join(m.group(1).rstrip("/"), "x")) if m else None
+        if not w:
+            return
+        r = data.get("tool_response")
+        if isinstance(r, dict) and isinstance(r.get("content"), list):
+            text = "\n".join(c.get("text", "") for c in r["content"] if isinstance(c, dict))
+        elif isinstance(r, str):
+            text = r
+        else:
+            text = json.dumps(r, ensure_ascii=False)
+        res = re.findall(r"結果[:：]\s*(合格|不合格)", text)
+        final = res[-1] if res else "不明"
+        idx = os.path.join(w[0], "index.html")
+        now = datetime.datetime.now(datetime.timezone.utc)
+        out = os.path.join(w[0], "review", "第三者判定_" + now.strftime("%Y%m%d_%H%M%S") + ".md")
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        with open(out, "w", encoding="utf-8") as f:
+            f.write(JUDGE_MARK + "\n")
+            f.write("判定者: 別エージェント（" + (ti.get("subagent_type") or "general-purpose") + "）\n")
+            f.write("日時: " + now.isoformat(timespec="seconds") + "\n")
+            f.write("作品の版: " + (sha(idx) if os.path.exists(idx) else "") + "\n")
+            f.write("最終結果: " + final + "\n\n## 依頼文\n" + ti["prompt"] + "\n\n## 判定\n" + text + "\n")
     elif tool.endswith("post_message"):
         for o in ti.get("attached_outputs") or []:
             if isinstance(o, dict) and o.get("kind") == "file":

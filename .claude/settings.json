@@ -2,14 +2,24 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|Artifact",
-        "hooks": [{ "type": "command", "command": "python3 -I \"$CLAUDE_PROJECT_DIR/.claude/hooks/improve_gate.py\"" }]
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|Artifact|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"$CLAUDE_PROJECT_DIR/.claude/hooks/improve_gate.py\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Artifact|Bash|mcp__hearthbot__post_message",
-        "hooks": [{ "type": "command", "command": "python3 -I \"$CLAUDE_PROJECT_DIR/.claude/hooks/improve_gate.py\"" }]
+        "matcher": "Artifact|Bash|Agent|mcp__hearthbot__post_message",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"$CLAUDE_PROJECT_DIR/.claude/hooks/improve_gate.py\""
+          }
+        ]
       }
     ]
   }
