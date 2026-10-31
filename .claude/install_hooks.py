@@ -17,10 +17,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SETTINGS = os.path.expanduser("~/.claude/settings.json")
 MARK = "improve_gate.py"
 # リポジトリが無いコンテナでは何もしない（ほかの作業を止めない）。あれば必ず見張り役を通す
-CMD = ('for f in /home/user/works/.claude/hooks/improve_gate.py "$CLAUDE_PROJECT_DIR/.claude/hooks/improve_gate.py"; '
+# 本体はプロジェクトの共有フォルダ（knowledge/lp-kit/見張り役/）。リポジトリの写しは古いので、共有フォルダが無いときだけ使う
+# （2026-10-31: 判定役がこの手順を実行して古い写しに戻し、判定の記録や見せる関門が効かなくなっていたため）
+# （knowledge/lp-kit/見張り役/install_hooks.py と同じ値にそろえる。違うと二つの手順が交互に書き換え合う）
+CMD = ('for f in /mnt/project-files/knowledge/lp-kit/見張り役/improve_gate.py /home/user/works/.claude/hooks/improve_gate.py; '
        'do [ -f "$f" ] && exec python3 -I "$f"; done; exit 0')
-PRE = "Edit|Write|MultiEdit|NotebookEdit|Bash|Artifact|Agent|mcp__Claude_Docs__.*"
-POST = "Artifact|Bash|Agent|mcp__hearthbot__post_message|mcp__Claude_Docs__.*"
+PRE = ".*"
+POST = ".*"
 WANT = {"PreToolUse": PRE, "PostToolUse": POST}
 
 
@@ -38,7 +41,7 @@ def load():
 def installed(s):
     hooks = s.get("hooks") or {}
     for ev, matcher in WANT.items():
-        ok = any(g.get("matcher") == matcher and any(MARK in (h.get("command") or "") for h in g.get("hooks") or [])
+        ok = any(g.get("matcher") == matcher and any(h.get("command") == CMD for h in g.get("hooks") or [])
                  for g in hooks.get(ev) or [])
         if not ok:
             return False
