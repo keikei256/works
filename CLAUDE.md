@@ -1,14 +1,17 @@
 # 最初に必ずやること（どのスレッドでも、ほかの作業より先に）
 
 ```
-python3 -I /home/user/works/.claude/install_hooks.py
+python3 -I /mnt/project-files/knowledge/lp-kit/見張り役/install_hooks.py --check
 ```
 
-「見張り役: 入れました」か「見張り役: 入っています」と出れば完了。
+「見張り役: 入っています」と出れば完了。「入っていません」なら `--check` を外して実行する。
 
-なぜ: 逆算の見張り役（`.claude/hooks/improve_gate.py`）は、一度見せた制作物（`/mnt/project-files/portfolio/`・`sales/`・この公開ページ・作品に結びついた Claude Docs の文章案）を、逆算メモ（`review/逆算_<日付>.md`）なしに直そうとすると止める仕組み。
-プロジェクトのスレッドではリポジトリの `.claude/settings.json` のフックが読み込まれないため、上のコマンドで `~/.claude/settings.json` に入れないと見張り役は動かない（2026-10-31 確認）。
+なぜ: 逆算の見張り役（本体 `/mnt/project-files/knowledge/lp-kit/見張り役/improve_gate.py`）は、一度見せた制作物（`/mnt/project-files/portfolio/`・`sales/`・この公開ページ・作品に結びついた Claude Docs の文章案）を、逆算メモ（`review/逆算_<日付>.md`）なしに直そうとすると止める仕組み。
+プロジェクトのスレッドではリポジトリの `.claude/settings.json` のフックが読み込まれないため、環境の Setup script と上のコマンドで `~/.claude/settings.json` に入れている（2026-10-31 確認）。
 
 - 見張り役に止められたら、言われたとおり逆算メモを先に書く。見張り役を外す・迂回する書き方を探さない。
-- 新しい Claude Docs を作るときは、本文に「制作物: portfolio/<作品フォルダ名>」か「制作物: なし」を書く（文章案・構成案は必ず作品に結びつける）。
-- 公開は `/mnt/project-files/knowledge/lp-kit/publish.py` 経由のみ。中の `gate.py` も、見張り役が入っていなければ入れ直す。
+- 逆算メモは「## 目標」「## 差」「## 埋め方」に加えて「## 調べたこと」を書く（2026-10-31 ユーザー指示「逆算に必要な情報は自分で考えて集めてくる。それが無いと逆算のしようがない」）。差を埋めるのに何の情報が足りないかを自分で考え、言われる前に調べに行く。手元の知識だけで済ませない。
+  - 各行に出典（URL・`/mnt/project-files/` か `knowledge/` のファイル・ユーザーに貼ってもらった物は「ユーザー提供」）と、分かったこと（30字以上）。2行以上。
+  - 少なくとも1つは、最後に見せた後に実際に調べたもの。Web は web-fetch エージェント・検索・`polite_fetch.py` で取ると見張り役が自動で記録し、メモの URL と照合する。新しく書いた分析ファイルや、新しく貼ってもらった物も数える。
+- 新しい Claude Docs を作るときは、本文に「制作物: portfolio/<作品フォルダ名>」か「制作物: なし」を書く（文章案・構成案は必ず作品に結びつける）。文章案はチャットに直接書かない。
+- 公開は `/mnt/project-files/knowledge/lp-kit/publish.py` 経由のみ。中の `gate.py` も同じ物差しで逆算メモを確かめ、見張り役が入っていなければ入れ直す。
