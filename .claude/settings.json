@@ -2,22 +2,22 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|Artifact|Agent",
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|Artifact|Agent|mcp__Claude_Docs__.*",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"$CLAUDE_PROJECT_DIR/.claude/hooks/improve_gate.py\""
+            "command": "for f in /home/user/works/.claude/hooks/improve_gate.py \"$CLAUDE_PROJECT_DIR/.claude/hooks/improve_gate.py\"; do [ -f \"$f\" ] && exec python3 -I \"$f\"; done; exit 0"
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Artifact|Bash|Agent|mcp__hearthbot__post_message",
+        "matcher": "Artifact|Bash|Agent|mcp__hearthbot__post_message|mcp__Claude_Docs__.*",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -I \"$CLAUDE_PROJECT_DIR/.claude/hooks/improve_gate.py\""
+            "command": "for f in /home/user/works/.claude/hooks/improve_gate.py \"$CLAUDE_PROJECT_DIR/.claude/hooks/improve_gate.py\"; do [ -f \"$f\" ] && exec python3 -I \"$f\"; done; exit 0"
           }
         ]
       }

@@ -10,6 +10,16 @@ Edit / Write / Bash / Artifact のどれで直そうとしても止める。
 公開ページ（このリポジトリ）は /mnt/project-files/portfolio/公開ページ/ を作品フォルダとして扱う。
 逆算メモの中身: 「## 目標」に一流の見本URL 2件以上、「## 差」「## 埋め方」に「- 」の行を3つ以上。前のメモの写しは不可。
 見せた記録: 作品の review/関門記録.jsonl（publish.py とこの見張り役が書く）。
+
+Claude Docs（文章案・構成案など）も制作物として扱う（2026-10-31、文章案が素通りしていた穴を塞ぐ）:
+- 新しい Doc は本文に「制作物: portfolio/<名前>」（sales/ も可）か「制作物: なし」を書かないと作れない。
+  文章案・構成案・見出し案などの Doc を「なし」にはできない。
+- 作品に結びついた Doc を作る・直すときは、その作品のファイルを直すときと同じく逆算メモが要る。
+- Doc を触った後にスレッドへ返信すると「見せた」と記録する（次に直すときは、その後の逆算メモが要る）。
+- 結びつきのわからない Doc は直せない。python3 -I .claude/hooks/doc_link.py <Doc id> <portfolio/名前|なし> で登録する。
+
+読み込ませ方: プロジェクトのスレッドではリポジトリの .claude/settings.json は読まれない。
+.claude/install_hooks.py が ~/.claude/settings.json に書き足す（CLAUDE.md・gate.py・環境の Setup script から呼ぶ）。
 """
 import datetime, glob, hashlib, json, os, re, sys
 
@@ -47,7 +57,7 @@ def work_of(path):
     r = real(path)
     if r == REPO or r.startswith(REPO + os.sep):
         rel = r[len(REPO):].lstrip(os.sep)
-        if rel.startswith(".git") or rel.startswith(".claude"):
+        if rel.startswith(".git") or rel.startswith(".claude") or rel == "CLAUDE.md":
             return None
         return SITE_WORK, False
     for k in KINDS:
@@ -154,9 +164,25 @@ URLMAP = os.path.join(PF_REAL, "knowledge", "lp-kit", "公開の対応.json")
 
 def urlmap():
     try:
-        return json.load(open(URLMAP, encoding="utf-8"))
+        m = json.load(open(URLMAP, encoding="utf-8"))
     except Exception:
         return {}
+    # 手で書いた形 {"https://claude.ai/artifact/..": {"work": ".."}} も読む
+    for k, v in list(m.items()):
+        if k.startswith("https://") and isinstance(v, dict) and v.get("work"):
+            m.setdefault("url:" + k, v["work"])
+    return m
+
+
+def save_urlmap(m):
+    try:
+        cur = urlmap()  # ほかのスレッドが書いた分を消さない
+        cur.update(m)
+        tmp = URLMAP + ".tmp" + str(os.getpid())
+        json.dump(cur, open(tmp, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+        os.replace(tmp, URLMAP)
+    except Exception:
+        pass
 
 
 CHANGE_LOG = os.path.join(PF_REAL, "knowledge", "lp-kit", "仕組みの変更記録.jsonl")
@@ -203,6 +229,7 @@ SHELL_WRITE = re.compile(r"(>|\btee\b|\bsed\b[^|;&]*\s-i|\bcp\b|\bmv\b|\brm\b|\b
 CODE_WRITE = re.compile(r"(open\([^)]*['\"][wax+]|write_text|write_bytes|writeFile|appendFile|createWriteStream|copyFile|"
                         r"shutil\.|os\.(remove|rename|replace|unlink|makedirs|mkdir)|unlinkSync|renameSync|rmSync|\.save\(|"
                         r"screenshot\(|\.to_csv|\.dump\(|subprocess|os\.system|execSync|spawnSync|child_process)")
+SITE_EXT = re.compile(r"\.(html?|css|js|mjs|png|jpe?g|webp|gif|svg|avif|ico|woff2?|json|txt|xml)$", re.I)
 INTERP = re.compile(r"\b(python3?|node|perl|ruby|bash|sh|deno|bun)\b")
 PATH_TOKEN = re.compile(r"(?:/mnt/(?:attach/)?project-files|(?<![\w/])project-files)/([^\s'\"`;|&)<>,]*)")
 
@@ -249,9 +276,15 @@ def bash_paths(cmd):
     in_repo = bool(re.search(re.escape(REPO) + r"|(^|[\s;&|'\"])works/", alltext)) or os.path.realpath(os.getcwd()).startswith(REPO)
     only_git = re.fullmatch(r"(\s*(cd [^;&|]+|git\s+(status|log|diff|fetch|pull|push|add|commit|branch|show|remote|config)[^;&|]*)\s*(&&|;|\|\|)?)+", cmd)
     if in_repo and not only_git:
-        for m in re.finditer(r"[^\s'\"`;|&<>]+", alltext):
-            t = m.group(0)
-            rel_ok = not t.startswith(("/", "-")) and ("/" in t or "." in t or os.path.exists(os.path.join(os.getcwd(), t)))
+        # 「cd 場所」は移動だけで書き込み先ではない
+        scan = [re.sub(r"(^|[;&|(]\s*)cd\s+[^\s;&|]+", r"\1", texts[0])] + texts[1:]
+        toks = [(m.group(0), i == 0) for i, txt in enumerate(scan) for m in re.finditer(r"[^\s'\"`;|&<>]+", txt)]
+        for t, in_cmd in toks:
+            # 相対パスは、リポジトリにある物か、コマンドに直接書いたページの部品らしい名前だけ（スクリプト中の「a.b」などを拾わない）
+            first = os.path.join(os.getcwd(), t.split("/")[0])
+            rel_ok = not t.startswith(("/", "-")) and (os.path.exists(first) or (in_cmd and bool(SITE_EXT.search(t))))
+            if not in_cmd and t.rstrip("/") == REPO:
+                continue  # スクリプト中のリポジトリ名だけ（chdir など）は書き込み先と見なさない
             if t.startswith(REPO) or (os.path.realpath(os.getcwd()).startswith(REPO) and rel_ok):
                 w = work_of(t if t.startswith("/") else os.path.join(os.getcwd(), t))
                 if w and w[0] == SITE_WORK and not t.endswith(".claude") and "/.claude" not in t:
@@ -282,8 +315,149 @@ def judge_prompt_problem(prompt):
     return None
 
 
+# ---- Claude Docs（文章案・構成案など）----
+DECL = re.compile(r"制作物\s*[:：]\s*((?:portfolio|sales)/[^\s/、。,，)）\\\"]+|なし)")
+COPY_WORDS = re.compile(r"文章案|コピー案|見出し案|構成案|キャッチ|提案文|LPの文|本文案|文案")
+STATE_DIR = os.path.expanduser("~/.claude/improve_gate_state")
+DOC_ID = re.compile(r"claude\.ai/(?:code/)?artifact/(?:[^\s\"'/?#]*-)?([A-Za-z0-9]{22})\b|\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b")
+DOC_LINK_CMD = "python3 -I " + os.path.join(REPO, ".claude", "hooks", "doc_link.py")
+
+
+def doc_ids(text):
+    return list(dict.fromkeys(a or b for a, b in DOC_ID.findall(text or "")))
+
+
+def norm_doc(i):
+    i = str(i or "")
+    found = doc_ids(i)
+    return found[0] if found else i.strip()
+
+
+def state(sid):
+    try:
+        return json.load(open(os.path.join(STATE_DIR, (sid or "x") + ".json"), encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def save_state(sid, st):
+    try:
+        os.makedirs(STATE_DIR, exist_ok=True)
+        json.dump(st, open(os.path.join(STATE_DIR, (sid or "x") + ".json"), "w", encoding="utf-8"), ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def doc_work(m, did):
+    """Doc に結びついた作品（'portfolio/..' か 'なし'）。わからなければ None"""
+    return m.get("doc:" + norm_doc(did))
+
+
+def doc_target(tool, ti):
+    """Docs の呼び出しが書き換える Doc の id。新しく作る呼び出しは 'NEW'。書き換えないものは None"""
+    name = tool.split("__")[-1]
+    c = ti.get("container") or {}
+    ref = ti.get("ref") or {}
+    if name in ("read", "query", "guide", "export"):
+        return None
+    if ti.get("object") == "utterance" or ref.get("object") == "utterance":
+        return None  # コメントのやり取りは本文の書き換えではない
+    if name == "batch" and c.get("create"):
+        return "NEW"
+    if c.get("id"):
+        return norm_doc(c["id"])
+    if ref.get("object") == "project" and ref.get("id"):
+        return norm_doc(ref["id"])  # Doc の名前の変更など
+    return None
+
+
+def pre_docs(data, tool, ti):
+    target = doc_target(tool, ti)
+    if target is None:
+        return
+    m = urlmap()
+    sid = data.get("session_id", "")
+    if target == "NEW":
+        text = json.dumps(ti, ensure_ascii=False)
+        d = DECL.search(text)
+        if not d:
+            deny("【逆算の関門】Doc を作るときは、本文のどこかに「制作物: portfolio/<作品フォルダ名>」（sales/ も可）か、"
+                 "作品と関係ない Doc なら「制作物: なし」と書いてください。文章案・構成案は作品に結びつけます。")
+        key = d.group(1)
+        if key == "なし":
+            if COPY_WORDS.search(text):
+                deny("【逆算の関門】文章案・構成案・見出し案などの Doc は「制作物: なし」にできません。"
+                     "「制作物: portfolio/<作品フォルダ名>」と書いて、その作品に結びつけてください。")
+        else:
+            w = os.path.join(PF_REAL, key)
+            if not os.path.isdir(w):
+                deny("【逆算の関門】「制作物: " + key + "」の作品フォルダがありません。先に /mnt/project-files/" + key + "/ を作ってください。")
+            mp = memo_problem(w)
+            if mp:
+                deny(mp + "（Doc の文章案も、その作品を直すことに入ります）")
+        st = state(sid)
+        st["pending_doc"] = {"work": key, "at": datetime.datetime.now(datetime.timezone.utc).timestamp()}
+        save_state(sid, st)
+        return
+    key = doc_work(m, target)
+    if key is None:
+        st = state(sid)
+        p = st.get("pending_doc")
+        if p and datetime.datetime.now(datetime.timezone.utc).timestamp() - p.get("at", 0) < 3600:
+            key = p["work"]  # このスレッドで作ったばかりの Doc（作ったときの返事から id を読めなかった場合）
+            m["doc:" + target] = key
+            save_urlmap({"doc:" + target: key})
+        else:
+            deny("【逆算の関門】この Doc（" + target + "）がどの作品の文章かわかりません。先に "
+                 + DOC_LINK_CMD + " " + target + " <portfolio/作品フォルダ名 か なし> で登録してください。"
+                 "文章案・構成案は作品フォルダに結びつけます。")
+    if key == "なし":
+        return
+    mp = memo_problem(os.path.join(PF_REAL, key))
+    if mp:
+        deny(mp + "（この Doc は " + key + " の文章です。Doc の書き換えも作品を直すことに入ります）")
+    st = state(sid)
+    st.setdefault("touched_docs", {})[target] = key
+    save_state(sid, st)
+
+
+def post_docs(data, tool, ti):
+    target = doc_target(tool, ti)
+    if target != "NEW":
+        return
+    sid = data.get("session_id", "")
+    st = state(sid)
+    p = st.get("pending_doc")
+    if not p:
+        return
+    resp = json.dumps(data.get("tool_response", ""), ensure_ascii=False)
+    ids = doc_ids(resp)
+    if ids:
+        save_urlmap({"doc:" + i: p["work"] for i in ids})
+        if p["work"] != "なし":
+            st.setdefault("touched_docs", {})[ids[0]] = p["work"]
+        st.pop("pending_doc", None)
+        save_state(sid, st)
+
+
+def post_shown_docs(data):
+    """返信したら、触った Doc の作品を「見せた」と記録する"""
+    sid = data.get("session_id", "")
+    st = state(sid)
+    touched = st.get("touched_docs") or {}
+    for did, key in touched.items():
+        if key and key != "なし":
+            record(os.path.join(PF_REAL, key), {"kind": "shown", "sha256": "", "file": "doc:" + did})
+    if touched:
+        st["touched_docs"] = {}
+        save_state(sid, st)
+
+
 def pre(data):
     tool, ti = data.get("tool_name", ""), data.get("tool_input", {}) or {}
+    if tool.startswith("mcp__Claude_Docs__"):
+        pre_docs(data, tool, ti)
+        return
     if tool in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
         fp = ti.get("file_path") or ti.get("notebook_path") or ""
         if "第三者判定" in os.path.basename(fp) and real(fp) != JUDGE_TPL:
@@ -384,10 +558,7 @@ def post(data):
             m["file:" + real(s)] = key
             for u in urls:
                 m["url:" + u] = key
-        try:
-            json.dump(m, open(URLMAP, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-        except Exception:
-            pass
+        save_urlmap(m)
     elif tool == "Agent" and "【第三者判定】" in (ti.get("prompt") or ""):
         m = re.search(r"- 作品フォルダ:\s*(/\S+)", ti["prompt"])
         w = work_of(os.path.join(m.group(1).rstrip("/"), "x")) if m else None
@@ -412,7 +583,10 @@ def post(data):
             f.write("日時: " + now.isoformat(timespec="seconds") + "\n")
             f.write("作品の版: " + (sha(idx) if os.path.exists(idx) else "") + "\n")
             f.write("最終結果: " + final + "\n\n## 依頼文\n" + ti["prompt"] + "\n\n## 判定\n" + text + "\n")
+    elif tool.startswith("mcp__Claude_Docs__"):
+        post_docs(data, tool, ti)
     elif tool.endswith("post_message"):
+        post_shown_docs(data)
         for o in ti.get("attached_outputs") or []:
             if isinstance(o, dict) and o.get("kind") == "file":
                 w = work_of(o.get("ref", ""))
