@@ -250,6 +250,13 @@ def script_texts(cmd):
 
 def bash_paths(cmd):
     """書き込むおそれのあるコマンドに出てくる、制作物と仕組みのパスを集める"""
+    lead = re.match(r"\s*cd\s+(['\"]?)([^\s;&|'\"]+)\1\s*(&&|;)", cmd)
+    if lead:
+        # 先頭の「cd 場所 &&」は、その場所で動くコマンドとして読む（作業場所が残っていても）
+        try:
+            os.chdir(os.path.expanduser(lead.group(2)))
+        except Exception:
+            pass
     texts = [cmd] + script_texts(cmd)
     alltext = "\n".join(texts)
     writes = bool(SHELL_WRITE.search(cmd)) or (bool(INTERP.search(cmd)) and bool(CODE_WRITE.search(alltext)))
