@@ -9,6 +9,9 @@ Edit / Write / Bash / Artifact のどれで直そうとしても止める。
 作品の単位: /mnt/project-files/portfolio/<名前>/ と /mnt/project-files/sales/<名前>/。
 公開ページ（このリポジトリ）は /mnt/project-files/portfolio/公開ページ/ を作品フォルダとして扱う。
 逆算メモの中身: 「## 目標」に一流の見本URL 2件以上、「## 差」「## 埋め方」に「- 」の行を3つ以上。前のメモの写しは不可。
+「## 調べたこと」（2026-10-31 ユーザー「逆算に必要な情報は自分で考えて集めてくる。それが無いと逆算のしようがない」）:
+  差を埋めるのに足りなかった情報を、自分で考えて調べた記録。「- 」の行を2つ以上、各行に調べた先（URL・knowledge/ のファイル・
+  「ユーザー提供」）とわかったこと（30字以上）。少なくとも1行は、目標の見本とは別のURLか「ユーザー提供」（手元の知識だけで済ませない）。
 見せた記録: 作品の review/関門記録.jsonl（publish.py とこの見張り役が書く）。
 
 Claude Docs（文章案・構成案など）も制作物として扱う（2026-10-31、文章案が素通りしていた穴を塞ぐ）:
@@ -103,6 +106,30 @@ def gap_detail_errs(goal, gap):
     return []
 
 
+def research_errs(goal, research):
+    """「調べたこと」に、差を埋めるために自分で集めた情報（調べた先とわかったこと）があるか"""
+    if research is None:
+        return ["「## 調べたこと」がない（差を埋めるのに足りない情報を自分で考えて調べ、調べた先とわかったことを書く）"]
+    lines = re.findall(r"^\s*[-・*]\s*(\S.*)$", research, re.M)
+    if len(lines) < 2:
+        return ["「## 調べたこと」に「- 」の行が2つ以上ない"]
+    goal_urls = set(re.findall(r"https?://[^\s)|>\]]+", goal or ""))
+    bad, fresh = [], False
+    for line in lines:
+        urls = re.findall(r"https?://[^\s)|>\]]+", line)
+        src = urls or "knowledge/" in line or "ユーザー提供" in line
+        if not src or len(line.strip()) < 30:
+            bad.append(line.strip()[:20])
+        if any(u not in goal_urls for u in urls) or "ユーザー提供" in line:
+            fresh = True
+    errs = []
+    if bad:
+        errs.append("「## 調べたこと」の各行に、調べた先（URL・knowledge/ のファイル・「ユーザー提供」）とわかったこと（30字以上）を書く。足りない行: " + "／".join(bad))
+    if not fresh:
+        errs.append("「## 調べたこと」に、目標の見本とは別のURLか「ユーザー提供」が1行もない（手元の知識だけで済ませず、新しく調べに行く）")
+    return errs
+
+
 def memo_problem(w):
     """逆算メモが足りなければ理由を返す。見せたことのない作品・十分なメモがあれば None"""
     rows = records(w)
@@ -113,7 +140,7 @@ def memo_problem(w):
     new = [f for f in memos if os.path.getmtime(f) > last]
     name = os.path.relpath(w, PF_REAL)
     head = (f"【逆算の関門】{name} は一度見せた制作物です。直す前に {name}/review/逆算_<日付>.md を書いてください。"
-            "今の版をいじるのではなく、①一流の完成形（目標）を先に集めて見る ②今と並べて差を言葉にする ③差を埋める方法を決める。")
+            "今の版をいじるのではなく、①一流の完成形（目標）を先に集めて見る ②今と並べて差を言葉にする ③差を埋めるのに足りない情報を自分で考えて調べに行く ④埋め方を決める。")
     if not new:
         return head + " 最後に見せた後の逆算メモがありません。"
     t = open(new[-1], encoding="utf-8").read()
@@ -125,12 +152,15 @@ def memo_problem(w):
         if body is None or len(re.findall(r"^\s*[-・*]\s*\S", body, re.M)) < 3:
             errs.append(f"「## {n}」に「- 」の行が3つ以上ない")
     errs += gap_detail_errs(goal, gap)
+    research = section(t, "調べたこと")
+    errs += research_errs(goal, research)
     old = [f for f in memos if f not in new]
-    if old and gap is not None:
-        norm = lambda s: re.sub(r"\s+", "", s or "")
-        for f in old:
-            if norm(section(open(f, encoding="utf-8").read(), "差")) == norm(gap):
-                errs.append(f"「## 差」が前のメモ {os.path.basename(f)} の写し")
+    norm = lambda s: re.sub(r"\s+", "", s or "")
+    for f in old:
+        ot = open(f, encoding="utf-8").read()
+        for n, body in (("差", gap), ("調べたこと", research)):
+            if body is not None and norm(body) and norm(section(ot, n)) == norm(body):
+                errs.append(f"「## {n}」が前のメモ {os.path.basename(f)} の写し")
     if errs:
         return head + " メモ " + os.path.basename(new[-1]) + " の不足: " + "／".join(errs)
     return None
